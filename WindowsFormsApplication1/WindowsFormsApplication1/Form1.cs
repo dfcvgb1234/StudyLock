@@ -23,10 +23,6 @@ namespace WindowsFormsApplication1
         int hours;
         bool hasExited;
         Process[] process;
-        String[] Programs =
-        {
-            "Din mor"
-        };
         public Form1()
         {
             InitializeComponent();
@@ -113,18 +109,23 @@ namespace WindowsFormsApplication1
         // Kører igennem alle processer
         for(int i = 0; i < processes.Length; i++)
             {
+                Console.WriteLine("Runned through all process");
                 // Checker hver gang loopet kører igennem
-                foreach(System.Diagnostics.Process process in System.Diagnostics.Process.GetProcesses())
+                foreach (System.Diagnostics.Process process in System.Diagnostics.Process.GetProcesses())
                 {
-                    Console.WriteLine("Checked!");
+                    int j = 0;
+                    System.Threading.Thread.Sleep(100);
+                    Console.WriteLine(j);
+                    j++;
                     // "omdøber" process navnene til lower case så det kan tjekkes
                     if(process.ProcessName.ToLower() == processes[i].ToLower())
                     {
                         process.Kill();
                         Console.WriteLine("Killed");
                     }
+                    
                 }
-                Console.WriteLine("Runned through all process");
+                
             }
             // lortet virker ikke, hvis du kan regne den ud kan du se i debug hvorfor
         }
