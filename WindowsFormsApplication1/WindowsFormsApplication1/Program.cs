@@ -7,12 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using WindowsFormsApplication1;
 using System.Windows.Forms;
-
+using ReadWriteCsv;
+using System.Management;
 namespace SheetsQuickstart
 {
     class Program
@@ -21,11 +21,17 @@ namespace SheetsQuickstart
         // at ~/.credentials/sheets.googleapis.com-dotnet-quickstart.json
         static string[] Scopes = { SheetsService.Scope.SpreadsheetsReadonly };
         static string ApplicationName = "Google Sheets API .NET Quickstart";
+        static public object[] processList = new object[5000];
         static void Main(string[] args)
-
         {
-            UserCredential credential;
+                UserCredential credential;
 
+            ManagementEventWatcher startWatch = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"));
+
+            startWatch.EventArrived += new EventArrivedEventHandler(StartWatch_EventArrived);
+            startWatch.Start();
+
+            
             using (var stream =
                 new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
@@ -51,31 +57,37 @@ namespace SheetsQuickstart
 
             // Define request parameters.
             String spreadsheetId = "1isflrahjYmtYmV07fWW7vv_TNOIaqoPeHiG1TeCHQgI";
-            String range = "Ark1!A1:A999";
+            String range = "Ark1!B1:B999";
             SpreadsheetsResource.ValuesResource.GetRequest request =
                     service.Spreadsheets.Values.Get(spreadsheetId, range);
 
-            // Prints the names and majors of students in a sample spreadsheet:
-            // https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
             ValueRange response = request.Execute();
             IList<IList<Object>> values = response.Values;
-            StringBuilder sb = new StringBuilder();
-            string delimiter = ",";
             if (values != null && values.Count > 0)
             {
-                Console.WriteLine("Name, Major");
-                foreach (var row in values)
+                int i = 0;
+                using (CsvFileWriter writer = new CsvFileWriter("WriteTest.csv"))
                 {
-                    // Print columns A and E, which correspond to indices 0 and 4.
-                    try
+                    Console.WriteLine("Name, Major");
+                    foreach (var row in values)
                     {
-                        // Console.WriteLine("{0}, {1}", row[0], row[1]);
-                        Console.WriteLine(row[0]);
-                        sb.AppendLine(string.Join(delimiter, row[0]));
-                    }
-                    catch
-                    {
-                        Console.WriteLine("Out of range");
+                        
+                        
+                        // Print columns A and E, which correspond to indices 0 and 4.
+                        try
+                        {
+                            
+                            processList[i] = values[i][0];
+                            Console.WriteLine(processList[i]);
+                            CsvRow rows = new CsvRow();
+                            rows.Add(row[0].ToString());
+                            writer.WriteRow(rows);
+                            i++;
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Out of range");
+                        }
                     }
                 }
             }
@@ -83,15 +95,44 @@ namespace SheetsQuickstart
             {
                 Console.WriteLine("No data found.");
             }
-            string filePath = @"C:\Users\Mc IceBerg\AppData\Roaming\StudyLock\Process.csv";
-            File.WriteAllText(filePath, sb.ToString());
+            
+            using (CsvFileReader reader = new CsvFileReader("WriteTest.csv"))
+            {
+               // string[] processList;
+                CsvRow row = new CsvRow();
+                while (reader.ReadRow(row))
+                {
+                    for (int i = 0; i < row.Count; i++)
+                    {
+                           
+                    }
+                    //Console.WriteLine();
+                }
+                
+            }
             var main_form = new Form1();
             main_form.Show();
             Application.Run();
-            if(main_form.killProg())
+            
+                if (main_form.killProg())
+                {
+                    Application.Exit();
+                }
+        }
+        static void StartWatch_EventArrived(object sender, EventArrivedEventArgs e)
+        {
+            string process = e.NewEvent.Properties["ProcessName"].Value.ToString();
+            // Console.WriteLine("Process opened: " + sender);
+            string[] rProcess = Regex.Split(process, ".exe");
+            for (int i = 0; i < rProcess.Length; i++)
             {
-                Application.Exit();
-            }
+                if (rProcess[i].ToLower() != ".exe" && string.IsNullOrWhiteSpace(rProcess[i]) == false)
+                {
+                    Console.WriteLine(rProcess[i]);
+                    Thread.Sleep(1000);
+                    Form1.StopProcesses(Program.processList, rProcess[i]);
+                }
+            }   
         }
     }
 }
