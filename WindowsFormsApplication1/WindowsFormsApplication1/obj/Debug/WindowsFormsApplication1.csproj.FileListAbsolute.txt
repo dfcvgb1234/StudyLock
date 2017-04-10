@@ -32,3 +32,5 @@ C:\Users\Mc IceBerg\documents\visual studio 2015\Projects\WindowsFormsApplicatio
 C:\Users\Mc IceBerg\documents\visual studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\Google.Apis.Auth.PlatformServices.xml
 C:\Users\Mc IceBerg\documents\visual studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\Google.Apis.Sheets.v4.pdb
 C:\Users\Mc IceBerg\documents\visual studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\Mc IceBerg\Documents\Visual Studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.ListOfProcesses.resources
+C:\Users\Mc IceBerg\Documents\Visual Studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.ListOfWebsites.resources

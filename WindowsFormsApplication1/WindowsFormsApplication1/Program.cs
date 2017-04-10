@@ -19,19 +19,107 @@ namespace SheetsQuickstart
     {
         // If modifying these scopes, delete your previously saved credentials
         // at ~/.credentials/sheets.googleapis.com-dotnet-quickstart.json
-        static string[] Scopes = { SheetsService.Scope.SpreadsheetsReadonly };
+        static string[] Scopes = { SheetsService.Scope.Spreadsheets };
         static string ApplicationName = "Google Sheets API .NET Quickstart";
+
+        // Genererer en ny array, med objecter til processlisten  
+        // *husk at gøre arrayen større hvis der er brug for mere plads*
         static public object[] processList = new object[5000];
+
+        static public object[] gamesList = new object[5000];
+
+        static public object[] checkedState = new object[5000];
+
+        // Main start
         static void Main(string[] args)
         {
-                UserCredential credential;
+            // Gemmer mine user credentials så man kan logge ind
+            UserCredential credential;
 
+            // Eventviewer der checker hvornår en process den starter.
             ManagementEventWatcher startWatch = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"));
 
+            // subscriber startwatch til StartWatch_EventArrived metoden.
             startWatch.EventArrived += new EventArrivedEventHandler(StartWatch_EventArrived);
+            // Starter startwatch
             startWatch.Start();
 
+            // googles API: gemmer mine credentials i en Json fil
+            using (var stream =
+                new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
+            {
+                string credPath = System.Environment.GetFolderPath(
+                    System.Environment.SpecialFolder.Personal);
+                credPath = Path.Combine(credPath, ".credentials/sheets.googleapis.com-dotnet-quickstart.json");
+
+                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    GoogleClientSecrets.Load(stream).Secrets,
+                    Scopes,
+                    "user",
+                    CancellationToken.None,
+                    new FileDataStore(credPath, true)).Result;
+                Console.WriteLine("Credential file saved to: " + credPath);
+            }
+            // færdig med at gemme
+
+            // Laver Google Sheets API service.
+            var service = new SheetsService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = ApplicationName,
+            });
+
+            // Definerer hvad den skal kigge efter i vores sheet
+            String spreadsheetId = "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ";
+            String getRange = "Ark1!A2:C999";
+            SpreadsheetsResource.ValuesResource.GetRequest request =
+                    service.Spreadsheets.Values.Get(spreadsheetId, getRange);
+
+            ValueRange response = request.Execute();
+            IList<IList<Object>> values = response.Values;
+
+            // checker om den celle den der i ikke er tom
+            if (values != null && values.Count > 0)
+            {
+                int i = 0;
+                // laver en todimensionelle liste om til en enkelt dimensionel array
+                foreach (var row in values)
+                {
+                    try
+                    {
+                        checkedState[i] = values[i][2]; 
+                        processList[i] = values[i][1];
+                        gamesList[i] = values[i][0];
+                        Console.WriteLine(processList[i]);       
+                        i++;
+                    }
+                    catch(Exception c)
+                    {
+                        Console.WriteLine(c.Message);
+                    }
+                }
+            }
+            // udskriver hvis der er ikke er noget data i det sheet der er blevet defineret
+            else
+            {
+                Console.WriteLine("No data found.");
+            }
+            // sørger for at programmet bliver åbnet efter at den har fundet data.
+            var main_form = new Form1();
+            main_form.Show();
+            Application.Run();
             
+            // sørger for at programmet bliver lukket når det skal og forblive åbent når det skal
+            if (main_form.killProg())
+            {
+                Application.Exit();
+            }
+        }
+
+        public static void UpdateSheet(List<object> check)
+        {
+            UserCredential credential;
+
             using (var stream =
                 new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
@@ -48,91 +136,53 @@ namespace SheetsQuickstart
                 Console.WriteLine("Credential file saved to: " + credPath);
             }
 
-            // Create Google Sheets API service.
             var service = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
                 ApplicationName = ApplicationName,
             });
 
-            // Define request parameters.
-            String spreadsheetId = "1isflrahjYmtYmV07fWW7vv_TNOIaqoPeHiG1TeCHQgI";
-            String range = "Ark1!B1:B999";
-            SpreadsheetsResource.ValuesResource.GetRequest request =
-                    service.Spreadsheets.Values.Get(spreadsheetId, range);
+            // Definere det den skal opdatere i vores sheet
+            String spreadsheetId2 = "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ";
+            String range2 = "Ark1!C2:C999";  // Hele C rækken
+            ValueRange valueRange = new ValueRange();
+            valueRange.MajorDimension = "COLUMNS";
 
-            ValueRange response = request.Execute();
-            IList<IList<Object>> values = response.Values;
-            if (values != null && values.Count > 0)
-            {
-                int i = 0;
-                using (CsvFileWriter writer = new CsvFileWriter("WriteTest.csv"))
-                {
-                    Console.WriteLine("Name, Major");
-                    foreach (var row in values)
-                    {
-                        
-                        
-                        // Print columns A and E, which correspond to indices 0 and 4.
-                        try
-                        {
-                            
-                            processList[i] = values[i][0];
-                            Console.WriteLine(processList[i]);
-                            CsvRow rows = new CsvRow();
-                            rows.Add(row[0].ToString());
-                            writer.WriteRow(rows);
-                            i++;
-                        }
-                        catch
-                        {
-                            Console.WriteLine("Out of range");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("No data found.");
-            }
+
+            var oblistcheck = check;
             
-            using (CsvFileReader reader = new CsvFileReader("WriteTest.csv"))
-            {
-               // string[] processList;
-                CsvRow row = new CsvRow();
-                while (reader.ReadRow(row))
-                {
-                    for (int i = 0; i < row.Count; i++)
-                    {
-                           
-                    }
-                    //Console.WriteLine();
-                }
-                
-            }
-            var main_form = new Form1();
-            main_form.Show();
-            Application.Run();
-            
-                if (main_form.killProg())
-                {
-                    Application.Exit();
-                }
+            valueRange.Values = new List<IList<object>> { oblistcheck };
+
+            SpreadsheetsResource.ValuesResource.UpdateRequest update = service.Spreadsheets.Values.Update(valueRange, spreadsheetId2, range2);
+            update.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            UpdateValuesResponse result2 = update.Execute();
+
+            Console.WriteLine("done!");
         }
+
+        // StartWatch_EventArrived metoden som bliver brugt til at definere hvilken process der er blevet åbnet.
         static void StartWatch_EventArrived(object sender, EventArrivedEventArgs e)
         {
-            string process = e.NewEvent.Properties["ProcessName"].Value.ToString();
-            // Console.WriteLine("Process opened: " + sender);
-            string[] rProcess = Regex.Split(process, ".exe");
-            for (int i = 0; i < rProcess.Length; i++)
+            if (Form1.butPressed == true)
             {
-                if (rProcess[i].ToLower() != ".exe" && string.IsNullOrWhiteSpace(rProcess[i]) == false)
+                // Finder hvilken process der er blevet åbnet.
+                string process = e.NewEvent.Properties["ProcessName"].Value.ToString();
+
+                // splitter process navnet fra .exe så vi ikke får det med i navnet.
+                string[] rProcess = Regex.Split(process, ".exe");
+
+                // for loop der sørger for at vi får det rigtige navn ud af det.
+                for (int i = 0; i < rProcess.Length; i++)
                 {
-                    Console.WriteLine(rProcess[i]);
-                    Thread.Sleep(1000);
-                    Form1.StopProcesses(Program.processList, rProcess[i]);
+                    if (rProcess[i].ToLower() != ".exe" && string.IsNullOrWhiteSpace(rProcess[i]) == false)
+                    {
+                        Console.WriteLine(rProcess[i]);
+                        Thread.Sleep(1000);
+                        // kører overload metoden af stopProcesses.
+                        Form1.StopProcesses(Program.processList, rProcess[i]);
+                    }
                 }
-            }   
+            }  
         }
     }
 }

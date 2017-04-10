@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Automation;
 using System.Diagnostics;
 using System.Windows.Forms;
 using System.Threading;
@@ -16,24 +17,29 @@ namespace WindowsFormsApplication1
 {
     public partial class Form1 : Form
     {
+        // definere den timer der tæller ned.
         System.Windows.Forms.Timer timer1;
+
+        // definere de strings og ints vi bruger til at holde styr på tiden.
         string min;
         string hour;
         int minutes;
         int hours;
+
+        static object[] checkedPrograms = new object[Program.processList.Length];
+        int range = 0;
+
+        // "progress" bliver brugt på et andet tidspunkt
         static int progress;
+
+        // definerer den mængde Threads der skal checke start processerne
         static int threads = 4;
-        public IList<IList<object>> closeProcess ;
         bool hasExited;
-        static string[] procInL = new string[Program.processList.Length];
         public static bool butPressed = false;
-        
-
-
 
         public Form1()
         {
-            closeProcess = new List<IList<object>>();
+            // definerer og starter threadsne
             InitializeComponent();
             Thread rP1 = new Thread(ReadProcesses1);
             Thread rP2 = new Thread(ReadProcesses2);
@@ -43,6 +49,24 @@ namespace WindowsFormsApplication1
             rp3.Start();          
         }
 
+        // genererer vores fulde liste af de programmer der skal lukkes
+        // via vores sheet 
+        void CreateProgramArray(object[] checkedArray, object[] programArray)
+        {
+            string[] check = checkedArray.Where(x => x != null)
+           .Select(x => x.ToString())
+           .ToArray();
+            for (int i = 0; i < check.Length; i++)
+            {
+                if(check[i] == "TRUE")
+                {
+                    checkedPrograms[i] = programArray[i];
+                }
+            }
+        }
+
+
+        // ReadProcesses metoden, kører samtidig med hindanen med defineret antal threads
         static void ReadProcesses1()
         {
             Console.WriteLine("Thread 'rP1' has been run");
@@ -54,7 +78,7 @@ namespace WindowsFormsApplication1
                 }
             }
             int stop = Process.GetProcesses().Length / threads;
-            StopProcesses(Program.processList, threads, 0, stop);
+            StopProcesses(checkedPrograms, threads, 0, stop);
             
         }
         static void ReadProcesses2()
@@ -69,7 +93,7 @@ namespace WindowsFormsApplication1
             }
             int stop = Process.GetProcesses().Length / threads;
             stop = stop * 2;
-            StopProcesses(Program.processList, threads, 1, stop);
+            StopProcesses(checkedPrograms, threads, 1, stop);
         }
         static void ReadProcesses3()
         {
@@ -83,31 +107,38 @@ namespace WindowsFormsApplication1
             }
             int stop = Process.GetProcesses().Length / threads;
             stop = stop * 3;
-            StopProcesses(Program.processList, threads, 2, stop);
+            StopProcesses(checkedPrograms, threads, 2, stop);
         }
 
+        
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             hour = textBox1.Text;
-            info.Text = textBox1.Text + " Hours, " + textBox2.Text + " Minues";
+            // opdatere info label, med den antal tid der er
+            info.Text = textBox1.Text + " Timer, " + textBox2.Text + " Minutter";
             try
             {
+                // prøver at parse den string der er i teksboksen til en int
                 hours = Int32.Parse(textBox1.Text);
             }
             catch (FormatException c)
             {
                 Console.WriteLine(c.Message);
+
+                // laver en message box som der siger at man kun kan have tal
+                // i tilfælde af at man prøver at skrive tal.
                 if (string.IsNullOrWhiteSpace(textBox1.Text) == false)
                 {
-                    MessageBox.Show("ONLY NUMBERS!");
+                    MessageBox.Show(this,"Du kan kun indsætte tal her","ADVARSEL",MessageBoxButtons.OK);
                 }
             }
         }
 
+        // denne textbox metoder gør det samme som den forrige 
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
             min = textBox2.Text;
-            info.Text = textBox1.Text + " Hours, " + textBox2.Text + " Minutes";
+            info.Text = textBox1.Text + " Timer, " + textBox2.Text + " Minutter";
             try
             {
                 minutes = Int32.Parse(textBox2.Text);
@@ -117,9 +148,10 @@ namespace WindowsFormsApplication1
                 Console.WriteLine(c.Message);
                 if (string.IsNullOrWhiteSpace(textBox2.Text) == false)
                 {
-                    MessageBox.Show("ONLY NUMBERS!");
+                    MessageBox.Show(this, "Du kan kun indsætte tal her", "ADVARSEL", MessageBoxButtons.OK);
                 }
             }
+            // Sørger for at hvis minutter er over 60 så så trækker den 60 fra minutter og lægger 1 til time
             if (minutes > 60)
             {
                 hours++;
@@ -130,74 +162,103 @@ namespace WindowsFormsApplication1
 
         }
 
+        // Ikke burgt men nødvændig metode
         private void info_Click(object sender, EventArgs e)
         {
 
         }
 
+        // Starter timer og Process check
         public void button1_Click(object sender, EventArgs e)
         {
-            progressBar1.Maximum = Process.GetProcesses().Length;
+            // checker om der er nogen kasser der tomme.
             if(string.IsNullOrWhiteSpace(textBox1.Text) || string.IsNullOrWhiteSpace(textBox2.Text))
             {
-                MessageBox.Show("You can not leave any fields empty!");
+                // åbner en messagebox for at lade burgeren vide han har lavet en fejl
+                MessageBox.Show(this,"Du skal skrive noget før du kan starte!","ADVARSEL", MessageBoxButtons.OK);
             }
             else
-            {
+            {   
+                // skjuler alt bortset fra timeren.
                 textBox1.Visible = false;
                 textBox2.Visible = false;
                 label1.Visible = false;
                 label2.Visible = false;
                 button1.Visible = false;
                 info.Visible = false;
-                
-                MessageBox.Show("Remember to save everything before starting");
+
+                // minder brugeren om at han skal huske at gemme alt inden han starter
+                MessageBox.Show(this, "Husk at gemme alt hvad du har åbent", "ADVARSEL", MessageBoxButtons.OK);
                 butPressed = true;
-                StopProcesses(Program.processList, threads, 3, Process.GetProcesses().Length);
+
+                // starter check af processer
+                StopProcesses(checkedPrograms, threads, 3, Process.GetProcesses().Length);
+
+                // definerer en ny timer og starter den.
                 timer1 = new System.Windows.Forms.Timer();
                 timer1.Tick += new EventHandler(timer1_Tick);
                 timer1.Interval = 1000; // 1 second
                 timer1.Start();
+
+                // skriver det til value label
                 Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
             }
         }
+
+        // indeholder koden til timeren
         private void timer1_Tick(object sender, EventArgs e)
         {
+            // trækker et minut fra hver gang den kører
             minutes--;
+
+            // skriver det til value label
             Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
+
+            // checker om minutter er 0 og trækker 1 fra timer.
             if (minutes == 0 && hours != 0)
             {
                 hours--;
                 minutes = 60;
             }
+
+            // stopper timeren
             if (minutes == 0 && hours == 0)
             {
                 timer1.Stop();
                 Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
             }
         }
+
+        // metoden der sørger for at processerne bliver checket og lukket hvis de skal lukkes
         public static void StopProcesses(object[] Processes, int increment, int startValue, int endValue)
         {
-            Console.WriteLine("StopProcesses has been run");
+            // definerer en ny process array som der indsamler alle åbne processer
             Process[] process = Process.GetProcesses();
+
+            // omdanner den liste som vi fik fra google sheets til en string array
             string[] proc = Processes.Where(x => x != null)
                        .Select(x => x.ToString())
                        .ToArray();
-            Console.WriteLine(proc.Length);
+
+            // for loop der gennemgår alle åbne processer
             for (int j = startValue; j < endValue; j = j + increment)
-            {
-                progress++;
+            {   
+                // progress variabel som bruges senere
+                //progress++;
+
+                // gennemgår hele vores liste og sammen ligner den med den nuværende process der bliver checket
                 for (int i = 0; i < proc.Length; i++)
                 {
+                    // prøver at lukke programmet hvis det skal lukkes
                     try
                     {
-                        Console.WriteLine(process[j].ProcessName.ToLower());
                         if(process[j].ProcessName.ToLower() == proc[i].ToLower())
                         {
-                            Console.WriteLine("Din mor");
                             process[j].Kill();
                         }
                     }
+
+                    // skriver til console hvis der opstår en fejl
                     catch (Exception c)
                     {
                         Console.WriteLine(c.Message);
@@ -207,50 +268,67 @@ namespace WindowsFormsApplication1
             Console.WriteLine("Finished");
         }
 
+        // overload metode til process metoden
         public static void StopProcesses(object[] Processes, string Proces)
         {
+            // definerer en variable som der fortæller om den har fundet et match i vores liste
             bool found = false;
-            Console.WriteLine("StopProcesses has been run");
+
+            // får igen alle processer
             Process[] process = Process.GetProcesses();
+
+            // omdanner igen vores liste til en string array
             string[] proc = Processes.Where(x => x != null)
                        .Select(x => x.ToString())
                        .ToArray();
-            Console.WriteLine(proc.Length);
-            for (int i = 0; i < proc.Length; i++)
+            if (Proces.ToLower() == "taskmgr")
             {
-                try
+                for (int j = 0; j < process.Length; j++)
+                {
+                    if (Proces.ToLower() == process[j].ProcessName.ToLower())
+                    {
+                        process[j].Kill();
+                    }
+                }
+            }
+            else
+            {
+                // checker hele vores list of sammenligner med den den angivne process
+                for (int i = 0; i < proc.Length; i++)
                 {
                     if (Proces.ToLower() == proc[i].ToLower())
                     {
-                        Console.WriteLine("Process Killed: {0}", proc[i].ToLower());
                         found = true;
                     }
-                }
-                catch (Exception c)
-                {
-                    Console.WriteLine(c.Message);
-                }
-                if (found == true)
-                {
-                    for (int j = 0; j < process.Length; j++)
-                    {
-                        if (Proces.ToLower() == process[j].ProcessName.ToLower())
-                        {
-                            try
-                            {
-                                Thread.Sleep(1000);
-                                process[j].Kill();
-                            }
-                            catch
-                            {
 
+                    // lukker programmet hvis det findes i åbne processer
+                    if (found == true)
+                    {
+                        for (int j = 0; j < process.Length; j++)
+                        {
+                            if (Proces.ToLower() == process[j].ProcessName.ToLower())
+                            {
+                                // prøver at lukke programmet og giver en fejl hvis det ikke kunne lade sig gøre
+                                try
+                                {
+                                    Thread.Sleep(1000);
+                                    process[j].Kill();
+                                }
+
+                                // skriver til console hvis der opstår en fejl
+                                catch (Exception c)
+                                {
+                                    Console.WriteLine(c.Message);
+                                }
                             }
                         }
                     }
                 }
-            }   
-            Console.WriteLine("Closed");
+                Console.WriteLine("Closed");
+            }
         }
+
+        // checker hvordan programmet blev lukket
         void Form_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (e.CloseReason == CloseReason.UserClosing)
@@ -265,6 +343,8 @@ namespace WindowsFormsApplication1
                 killProg();
             }
         }
+
+        // metode som vi kan bruge fra andre scripts, som fortæller om programmet er blevet lukket.
         public bool killProg()
         {
             if(hasExited)
@@ -277,19 +357,76 @@ namespace WindowsFormsApplication1
             }
         }
 
+        // ikke brugt men nødvændig metode
         private void Form1_Load(object sender, EventArgs e)
         {
-            
+            CreateProgramArray(Program.checkedState, Program.processList);
+            string[] check = checkedPrograms.Where(x => x != null)
+                       .Select(x => x.ToString())
+                       .ToArray();
+            Console.WriteLine(check.Length);
+            for (int i = 0; i < check.Length; i++)
+            {
+                Console.WriteLine(check[i]);
+            }
         }
 
+        // ikke brugt men nødvændig metode
         private void Values_TextChanged(object sender, EventArgs e)
         {
 
         }
 
+        // ikke brugt men nødvændig metode
         private void progressBar1_Click(object sender, EventArgs e)
         {
             
+        }
+
+        private void checkedListBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button2_Click_1(object sender, EventArgs e)
+        {
+            var list_form = new ListOfProcesses();
+            list_form.Show();
+            Console.WriteLine(GetActiveTabUrl());
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+         
+        public static string GetActiveTabUrl()
+        {
+            Process[] procsChrome = Process.GetProcessesByName("chrome");
+
+            if (procsChrome.Length <= 0)
+                return null;
+
+            foreach (Process proc in procsChrome)
+            {
+                // the chrome process must have a window 
+                if (proc.MainWindowHandle == IntPtr.Zero)
+                    continue;
+
+                // to find the tabs we first need to locate something reliable - the 'New Tab' button 
+                AutomationElement root = AutomationElement.FromHandle(proc.MainWindowHandle);
+                var SearchBar = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "Address and search bar"));
+                if (SearchBar != null)
+                    return (string)SearchBar.GetCurrentPropertyValue(ValuePatternIdentifiers.ValueProperty);
+            }
+
+            return null;
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            var list_web = new ListOfWebsites();
+            list_web.Show();
         }
     }
 }
