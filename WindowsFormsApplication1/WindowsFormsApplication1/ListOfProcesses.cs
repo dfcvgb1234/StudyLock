@@ -54,8 +54,8 @@ namespace WindowsFormsApplication1
                     tmp.Add("FALSE");
                 }
             }
-            Program.UpdateSheet(tmp);
-            MessageBox.Show(this, "Genstart programmet for at ændringerne træde i kraft", "ADVARSEL", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Program.UpdateSheet(tmp, "Ark1!C2:C999");
+            MessageBox.Show(this, "Genstart programmet for at ændringerne træder i kraft", "ADVARSEL", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
         private void CheckAll_click(object sender, EventArgs e)
@@ -80,6 +80,18 @@ namespace WindowsFormsApplication1
             {
                 checkedListBox1.Items.Add(proc[i], false);
             }
+        }
+
+        private void Add_Click(object sender, EventArgs e)
+        {
+            var new_prog = new AddProgram();
+            new_prog.Show();
+        }
+        public void AddToList(string gameName)
+        {
+            checkedListBox1.Focus();
+            checkedListBox1.Items.Clear();
+            Console.WriteLine("add!");
         }
     }
 }

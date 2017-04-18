@@ -32,6 +32,7 @@
             this.Save = new System.Windows.Forms.Button();
             this.CheckAll = new System.Windows.Forms.Button();
             this.DeSelectAll = new System.Windows.Forms.Button();
+            this.Add = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // checkedListBox1
@@ -44,9 +45,9 @@
             // 
             // Save
             // 
-            this.Save.Location = new System.Drawing.Point(44, 472);
+            this.Save.Location = new System.Drawing.Point(185, 472);
             this.Save.Name = "Save";
-            this.Save.Size = new System.Drawing.Size(235, 26);
+            this.Save.Size = new System.Drawing.Size(123, 26);
             this.Save.TabIndex = 1;
             this.Save.Text = "Gem ændringer";
             this.Save.UseVisualStyleBackColor = true;
@@ -72,11 +73,22 @@
             this.DeSelectAll.UseVisualStyleBackColor = true;
             this.DeSelectAll.Click += new System.EventHandler(this.DeSelectAll_Click);
             // 
+            // Add
+            // 
+            this.Add.Location = new System.Drawing.Point(12, 472);
+            this.Add.Name = "Add";
+            this.Add.Size = new System.Drawing.Size(130, 26);
+            this.Add.TabIndex = 4;
+            this.Add.Text = "Tilføj";
+            this.Add.UseVisualStyleBackColor = true;
+            this.Add.Click += new System.EventHandler(this.Add_Click);
+            // 
             // ListOfProcesses
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(321, 503);
+            this.Controls.Add(this.Add);
             this.Controls.Add(this.DeSelectAll);
             this.Controls.Add(this.CheckAll);
             this.Controls.Add(this.Save);
@@ -95,5 +107,6 @@
         private System.Windows.Forms.Button Save;
         private System.Windows.Forms.Button CheckAll;
         private System.Windows.Forms.Button DeSelectAll;
+        private System.Windows.Forms.Button Add;
     }
 }

@@ -13,6 +13,9 @@ using System.Windows.Forms;
 using System.Threading;
 using SheetsQuickstart;
 using System.Management;
+using System.Web;
+using System.Text.RegularExpressions;
+using NDde.Client;
 namespace WindowsFormsApplication1
 {
     public partial class Form1 : Form
@@ -31,6 +34,8 @@ namespace WindowsFormsApplication1
 
         // "progress" bliver brugt på et andet tidspunkt
         static int progress;
+
+        public static string[] websites;
 
         // definerer den mængde Threads der skal checke start processerne
         static int threads = 4;
@@ -184,7 +189,6 @@ namespace WindowsFormsApplication1
                 textBox2.Visible = false;
                 label1.Visible = false;
                 label2.Visible = false;
-                button1.Visible = false;
                 info.Visible = false;
 
                 // minder brugeren om at han skal huske at gemme alt inden han starter
@@ -390,43 +394,108 @@ namespace WindowsFormsApplication1
 
         private void button2_Click_1(object sender, EventArgs e)
         {
-            var list_form = new ListOfProcesses();
-            list_form.Show();
-            Console.WriteLine(GetActiveTabUrl());
+
+            //Console.WriteLine(GetBrowserURL("firefox"));    
         }
 
         private void label1_Click(object sender, EventArgs e)
         {
 
         }
-         
-        public static string GetActiveTabUrl()
+
+        public static void UpdateHostFile(string updateText, bool Remove)
         {
-            Process[] procsChrome = Process.GetProcessesByName("chrome");
-
-            if (procsChrome.Length <= 0)
-                return null;
-
-            foreach (Process proc in procsChrome)
+            string path = @"C:\Windows\System32\drivers\etc\hosts";
+            Thread.Sleep(300);
+            if (!Remove)
             {
-                // the chrome process must have a window 
-                if (proc.MainWindowHandle == IntPtr.Zero)
-                    continue;
-
-                // to find the tabs we first need to locate something reliable - the 'New Tab' button 
-                AutomationElement root = AutomationElement.FromHandle(proc.MainWindowHandle);
-                var SearchBar = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "Address and search bar"));
-                if (SearchBar != null)
-                    return (string)SearchBar.GetCurrentPropertyValue(ValuePatternIdentifiers.ValueProperty);
+                using (StreamWriter w = File.AppendText(path))
+                {
+                    if (!updateText.Contains("www."))
+                    {
+                        w.WriteLine("127.0.0.1 " + "www." + updateText);
+                    }
+                    else
+                    {
+                        w.WriteLine("127.0.0.1 " + updateText);
+                    }
+                }
             }
+            if(Remove)
+            {
+                File.Delete(path);
+                Thread.Sleep(200);
+                File.Create(path).Close();
 
-            return null;
+                using (StreamWriter w = File.AppendText(path))
+                {
+                    if(!updateText.Contains("www."))
+                    {
+                        w.WriteLine("127.0.0.1" + "www." + updateText);
+                    }
+                    else
+                    {
+                        w.WriteLine("127.0.0.1" + updateText);
+                    }
+                }
+            }
+            ListOfWebsites.progressWeb = 100;
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
+
+        }
+
+        private void progs_Click(object sender, EventArgs e)
+        {
+            var list_form = new ListOfProcesses();
+            list_form.Show();
+        }
+
+        private void roundButton1_Click(object sender, EventArgs e)
+        {
             var list_web = new ListOfWebsites();
             list_web.Show();
+            Console.WriteLine(File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba"));
+            string fileText = File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba");
+            websites = fileText.Split(',');
+            Console.WriteLine(websites.Length);
+        }
+
+        private void roundButton2_Click(object sender, EventArgs e)
+        {
+            // checker om der er nogen kasser der tomme.
+            if (string.IsNullOrWhiteSpace(textBox1.Text) || string.IsNullOrWhiteSpace(textBox2.Text))
+            {
+                // åbner en messagebox for at lade burgeren vide han har lavet en fejl
+                MessageBox.Show(this, "Du skal skrive noget før du kan starte!", "ADVARSEL", MessageBoxButtons.OK);
+            }
+            else
+            {
+                // skjuler alt bortset fra timeren.
+                textBox1.Visible = false;
+                textBox2.Visible = false;
+                label1.Visible = false;
+                label2.Visible = false;
+                info.Visible = false;
+
+                // minder brugeren om at han skal huske at gemme alt inden han starter
+                MessageBox.Show(this, "Husk at gemme alt hvad du har åbent", "ADVARSEL", MessageBoxButtons.OK);
+                butPressed = true;
+
+                // starter check af processer
+                StopProcesses(checkedPrograms, threads, 3, Process.GetProcesses().Length);
+
+                // definerer en ny timer og starter den.
+                timer1 = new System.Windows.Forms.Timer();
+                timer1.Tick += new EventHandler(timer1_Tick);
+                timer1.Interval = 1000; // 1 second
+                timer1.Start();
+
+                // skriver det til value label
+                Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
+            }
         }
     }
 }

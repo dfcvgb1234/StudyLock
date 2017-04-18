@@ -22,6 +22,10 @@ namespace SheetsQuickstart
         static string[] Scopes = { SheetsService.Scope.Spreadsheets };
         static string ApplicationName = "Google Sheets API .NET Quickstart";
 
+        public static int increment = 2;
+
+        static string path = @"C:\Windows\System32\drivers\etc\hosts";
+
         // Genererer en ny array, med objecter til processlisten  
         // *husk at gøre arrayen større hvis der er brug for mere plads*
         static public object[] processList = new object[5000];
@@ -30,12 +34,17 @@ namespace SheetsQuickstart
 
         static public object[] checkedState = new object[5000];
 
+        static public int range = 0;
         // Main start
         static void Main(string[] args)
         {
             // Gemmer mine user credentials så man kan logge ind
             UserCredential credential;
 
+            if (!File.Exists(path))
+            {
+                File.Create(path).Close();
+            }
             // Eventviewer der checker hvornår en process den starter.
             ManagementEventWatcher startWatch = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"));
 
@@ -82,6 +91,7 @@ namespace SheetsQuickstart
             if (values != null && values.Count > 0)
             {
                 int i = 0;
+                range = values.Count;
                 // laver en todimensionelle liste om til en enkelt dimensionel array
                 foreach (var row in values)
                 {
@@ -116,7 +126,7 @@ namespace SheetsQuickstart
             }
         }
 
-        public static void UpdateSheet(List<object> check)
+        public static void UpdateSheet(List<object> check, string UpdateArea)
         {
             UserCredential credential;
 
@@ -144,7 +154,7 @@ namespace SheetsQuickstart
 
             // Definere det den skal opdatere i vores sheet
             String spreadsheetId2 = "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ";
-            String range2 = "Ark1!C2:C999";  // Hele C rækken
+            String range2 = UpdateArea;  // Hele C rækken
             ValueRange valueRange = new ValueRange();
             valueRange.MajorDimension = "COLUMNS";
 
@@ -183,6 +193,67 @@ namespace SheetsQuickstart
                     }
                 }
             }  
+        }
+        public static void GetSheet(string getArea)
+        {
+
+            UserCredential credential;
+            using (var stream =
+    new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
+            {
+                string credPath = System.Environment.GetFolderPath(
+                    System.Environment.SpecialFolder.Personal);
+                credPath = Path.Combine(credPath, ".credentials/sheets.googleapis.com-dotnet-quickstart.json");
+
+                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    GoogleClientSecrets.Load(stream).Secrets,
+                    Scopes,
+                    "user",
+                    CancellationToken.None,
+                    new FileDataStore(credPath, true)).Result;
+                Console.WriteLine("Credential file saved to: " + credPath);
+            }
+            // færdig med at gemme
+
+            // Laver Google Sheets API service.
+            var service = new SheetsService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = ApplicationName,
+            });
+
+            // Definerer hvad den skal kigge efter i vores sheet
+            String spreadsheetId = "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ";
+            String getRange = getArea;
+            SpreadsheetsResource.ValuesResource.GetRequest request =
+                    service.Spreadsheets.Values.Get(spreadsheetId, getRange);
+
+            ValueRange response = request.Execute();
+            IList<IList<Object>> values = response.Values;
+
+            // checker om den celle den der i ikke er tom
+            if (values != null && values.Count > 0)
+            {
+                int i = 0;
+                range = values.Count;
+                // laver en todimensionelle liste om til en enkelt dimensionel array
+                foreach (var row in values)
+                {
+                    try
+                    {
+                        i++;
+                    }
+                    catch (Exception c)
+                    {
+                        Console.WriteLine(c.Message);
+                    }
+                }
+            }
+            // udskriver hvis der er ikke er noget data i det sheet der er blevet defineret
+            else
+            {
+                Console.WriteLine("No data found.");
+            }
         }
     }
 }
