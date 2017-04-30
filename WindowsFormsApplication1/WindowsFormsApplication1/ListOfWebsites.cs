@@ -72,13 +72,33 @@ namespace WindowsFormsApplication1
             {
                 for (int i = 0; i < listBox1.Items.Count; i++)
                 {
-                    w.WriteLine(listBox1.Items[i] + " ,");
+                    w.WriteLine(listBox1.Items[i] + ",");
                 }
             }
         }
 
         private void ListOfWebsites_Load(object sender, EventArgs e)
         {
+            readFile();
+            foreach (string h in readFile())
+            {
+                if (String.IsNullOrWhiteSpace(h) == false)
+                {
+                    Console.WriteLine(h);
+                    listBox1.Items.Add(h);
+                }
+            }
+        }
+        public string[] readFile()
+        {
+            string path = @"C:\Windows\System32\drivers\etc\host.begeba";
+            if (File.Exists(path))
+            {
+                string commatext = File.ReadAllText(path);
+                return commatext.Split(',');
+            }
+            else
+                return null;
         }
     }
 }

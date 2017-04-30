@@ -455,12 +455,8 @@ namespace WindowsFormsApplication1
 
         private void roundButton1_Click(object sender, EventArgs e)
         {
-            var list_web = new ListOfWebsites();
-            list_web.Show();
-            Console.WriteLine(File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba"));
-            string fileText = File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba");
-            websites = fileText.Split(',');
-            Console.WriteLine(websites.Length);
+            var list_websites = new ListOfWebsites();
+            list_websites.Show();
         }
 
         private void roundButton2_Click(object sender, EventArgs e)
