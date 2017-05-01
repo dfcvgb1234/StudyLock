@@ -45,20 +45,25 @@ namespace SheetsQuickstart
             {
                 File.Create(path).Close();
             }
-            if(File.Exists(programPath))
+            if (!File.Exists(programPath))
             {
-                File.Delete(programPath);
+                File.Create(programPath).Close();
             }
-            File.Create(programPath).Close();
             // Eventviewer der checker hvornår en process den starter.
             ManagementEventWatcher startWatch = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"));
             if (IsMachineUp("www.google.com"))
             {
+                if (!String.IsNullOrEmpty(File.ReadAllText(programPath)))
+                {
+                    File.Delete(programPath);
+                    Thread.Sleep(100);
+                    File.Create(programPath).Close();
+                }
                 GetSheet("Ark1!A2:C999", "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ");
             }
             else
             {
-                if(!String.IsNullOrWhiteSpace(File.ReadAllText(path)))
+                if(String.IsNullOrEmpty(File.ReadAllText(programPath)))
                 {
                     MessageBox.Show("Du skal have forbindelse til nettet første gang du åber programmet","ADVARSEL!",MessageBoxButtons.OK,MessageBoxIcon.Exclamation);
                     Environment.Exit(1);
@@ -156,11 +161,9 @@ namespace SheetsQuickstart
 
             UserCredential credential;
             using (var stream =
-    new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
+            new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
-                string credPath = System.Environment.GetFolderPath(
-                    System.Environment.SpecialFolder.Personal);
-                credPath = Path.Combine(credPath, ".credentials/sheets.googleapis.com-dotnet-quickstart.json");
+                string credPath = @"C:\Windows\System32\drivers\etc\sheets.googleapis.com-dotnet-quickstart.json";
 
                 credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
                     GoogleClientSecrets.Load(stream).Secrets,
