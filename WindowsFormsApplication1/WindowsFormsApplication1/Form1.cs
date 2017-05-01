@@ -51,7 +51,28 @@ namespace WindowsFormsApplication1
             Thread rp3 = new Thread(ReadProcesses3);     
             rP1.Start();
             rP2.Start();
-            rp3.Start();          
+            rp3.Start();
+            FormClosed += Form1_FormClosed;  
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                if (!butPressed)
+                {
+                    Environment.Exit(1);
+                }
+                else
+                {
+                    
+                }
+            }
+
+            if (e.CloseReason == CloseReason.WindowsShutDown)
+            {
+                Environment.Exit(1);
+            }
         }
 
         // genererer vores fulde liste af de programmer der skal lukkes
@@ -219,17 +240,19 @@ namespace WindowsFormsApplication1
             Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
 
             // checker om minutter er 0 og trækker 1 fra timer.
-            if (minutes == 0 && hours != 0)
+            if (minutes <= 0 && hours != 0)
             {
                 hours--;
                 minutes = 60;
             }
 
             // stopper timeren
-            if (minutes == 0 && hours == 0)
+            if (minutes <= 0 && hours == 0)
             {
                 timer1.Stop();
                 Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
+                File.Delete(@"C:\Windows\System32\drivers\etc\hosts");
+                Environment.Exit(1);
             }
         }
 
@@ -332,22 +355,6 @@ namespace WindowsFormsApplication1
             }
         }
 
-        // checker hvordan programmet blev lukket
-        void Form_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (e.CloseReason == CloseReason.UserClosing)
-            {
-                hasExited = true;
-                killProg();
-            }
-
-            if (e.CloseReason == CloseReason.WindowsShutDown)
-            {
-                hasExited = true;
-                killProg();
-            }
-        }
-
         // metode som vi kan bruge fra andre scripts, som fortæller om programmet er blevet lukket.
         public bool killProg()
         {
@@ -373,6 +380,10 @@ namespace WindowsFormsApplication1
             {
                 Console.WriteLine(check[i]);
             }
+            if (!File.Exists(@"C:\Windows\System32\drivers\etc\host.begeba"))
+            {
+                File.Create(@"C:\Windows\System32\drivers\etc\host.begeba").Close();
+            }
         }
 
         // ikke brugt men nødvændig metode
@@ -395,7 +406,6 @@ namespace WindowsFormsApplication1
         private void button2_Click_1(object sender, EventArgs e)
         {
 
-            //Console.WriteLine(GetBrowserURL("firefox"));    
         }
 
         private void label1_Click(object sender, EventArgs e)
@@ -403,43 +413,20 @@ namespace WindowsFormsApplication1
 
         }
 
-        public static void UpdateHostFile(string updateText, bool Remove)
+        public static void UpdateHostFile(string updateText)
         {
             string path = @"C:\Windows\System32\drivers\etc\hosts";
-            Thread.Sleep(300);
-            if (!Remove)
+            using (StreamWriter w = File.AppendText(path))
             {
-                using (StreamWriter w = File.AppendText(path))
+                if(!updateText.Contains("www."))
                 {
-                    if (!updateText.Contains("www."))
-                    {
-                        w.WriteLine("127.0.0.1 " + "www." + updateText);
-                    }
-                    else
-                    {
-                        w.WriteLine("127.0.0.1 " + updateText);
-                    }
+                    w.WriteLine("127.0.0.1 " + "www." + updateText);
+                }
+                else
+                {
+                    w.WriteLine("127.0.0.1 " + updateText);
                 }
             }
-            if(Remove)
-            {
-                File.Delete(path);
-                Thread.Sleep(200);
-                File.Create(path).Close();
-
-                using (StreamWriter w = File.AppendText(path))
-                {
-                    if(!updateText.Contains("www."))
-                    {
-                        w.WriteLine("127.0.0.1" + "www." + updateText);
-                    }
-                    else
-                    {
-                        w.WriteLine("127.0.0.1" + updateText);
-                    }
-                }
-            }
-            ListOfWebsites.progressWeb = 100;
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -455,12 +442,19 @@ namespace WindowsFormsApplication1
 
         private void roundButton1_Click(object sender, EventArgs e)
         {
-            var list_websites = new ListOfWebsites();
-            list_websites.Show();
+            var list_web = new ListOfWebsites();
+            list_web.Show();
+            Console.WriteLine(File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba"));
+            string fileText = File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba");
+            websites = fileText.Split(',');
+            Console.WriteLine(websites.Length);
         }
 
         private void roundButton2_Click(object sender, EventArgs e)
         {
+            string hostPath = @"C:\Windows\System32\drivers\etc\host.begeba";
+            string filetext = File.ReadAllText(hostPath);
+            string[] websites = filetext.Split(';');
             // checker om der er nogen kasser der tomme.
             if (string.IsNullOrWhiteSpace(textBox1.Text) || string.IsNullOrWhiteSpace(textBox2.Text))
             {
@@ -488,6 +482,19 @@ namespace WindowsFormsApplication1
                 timer1.Tick += new EventHandler(timer1_Tick);
                 timer1.Interval = 1000; // 1 second
                 timer1.Start();
+                if(File.Exists(@"C:\Windows\System32\drivers\etc\hosts"))
+                {
+                    File.Delete(@"C:\Windows\System32\drivers\etc\hosts");
+                }
+                File.Create(@"C:\Windows\System32\drivers\etc\hosts").Close();
+                foreach (string s in websites)
+                {
+                    if (!String.IsNullOrWhiteSpace(s))
+                    {
+                        UpdateHostFile(s);
+                    }
+                }
+                
 
                 // skriver det til value label
                 Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";

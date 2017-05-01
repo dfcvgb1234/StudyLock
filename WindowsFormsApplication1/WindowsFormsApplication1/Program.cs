@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using WindowsFormsApplication1;
 using System.Windows.Forms;
+using System.Net.NetworkInformation;
 using ReadWriteCsv;
 using System.Management;
 namespace SheetsQuickstart
@@ -25,6 +26,7 @@ namespace SheetsQuickstart
         public static int increment = 2;
 
         static string path = @"C:\Windows\System32\drivers\etc\hosts";
+        static string programPath = @"C:\Windows\System32\drivers\etc\Programs.begeba";
 
         // Genererer en ny array, med objecter til processlisten  
         // *husk at gøre arrayen større hvis der er brug for mere plads*
@@ -38,82 +40,35 @@ namespace SheetsQuickstart
         // Main start
         static void Main(string[] args)
         {
-            // Gemmer mine user credentials så man kan logge ind
-            UserCredential credential;
 
             if (!File.Exists(path))
             {
                 File.Create(path).Close();
             }
+            if(File.Exists(programPath))
+            {
+                File.Delete(programPath);
+            }
+            File.Create(programPath).Close();
             // Eventviewer der checker hvornår en process den starter.
             ManagementEventWatcher startWatch = new ManagementEventWatcher(new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"));
-
+            if (IsMachineUp("www.google.com"))
+            {
+                GetSheet("Ark1!A2:C999", "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ");
+            }
+            else
+            {
+                if(!String.IsNullOrWhiteSpace(File.ReadAllText(path)))
+                {
+                    MessageBox.Show("Du skal have forbindelse til nettet første gang du åber programmet","ADVARSEL!",MessageBoxButtons.OK,MessageBoxIcon.Exclamation);
+                    Environment.Exit(1);
+                }
+            }
             // subscriber startwatch til StartWatch_EventArrived metoden.
             startWatch.EventArrived += new EventArrivedEventHandler(StartWatch_EventArrived);
             // Starter startwatch
             startWatch.Start();
 
-            // googles API: gemmer mine credentials i en Json fil
-            using (var stream =
-                new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
-            {
-                string credPath = System.Environment.GetFolderPath(
-                    System.Environment.SpecialFolder.Personal);
-                credPath = Path.Combine(credPath, ".credentials/sheets.googleapis.com-dotnet-quickstart.json");
-
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    Scopes,
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore(credPath, true)).Result;
-                Console.WriteLine("Credential file saved to: " + credPath);
-            }
-            // færdig med at gemme
-
-            // Laver Google Sheets API service.
-            var service = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = ApplicationName,
-            });
-
-            // Definerer hvad den skal kigge efter i vores sheet
-            String spreadsheetId = "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ";
-            String getRange = "Ark1!A2:C999";
-            SpreadsheetsResource.ValuesResource.GetRequest request =
-                    service.Spreadsheets.Values.Get(spreadsheetId, getRange);
-
-            ValueRange response = request.Execute();
-            IList<IList<Object>> values = response.Values;
-
-            // checker om den celle den der i ikke er tom
-            if (values != null && values.Count > 0)
-            {
-                int i = 0;
-                range = values.Count;
-                // laver en todimensionelle liste om til en enkelt dimensionel array
-                foreach (var row in values)
-                {
-                    try
-                    {
-                        checkedState[i] = values[i][2]; 
-                        processList[i] = values[i][1];
-                        gamesList[i] = values[i][0];
-                        Console.WriteLine(processList[i]);       
-                        i++;
-                    }
-                    catch(Exception c)
-                    {
-                        Console.WriteLine(c.Message);
-                    }
-                }
-            }
-            // udskriver hvis der er ikke er noget data i det sheet der er blevet defineret
-            else
-            {
-                Console.WriteLine("No data found.");
-            }
             // sørger for at programmet bliver åbnet efter at den har fundet data.
             var main_form = new Form1();
             main_form.Show();
@@ -194,7 +149,9 @@ namespace SheetsQuickstart
                 }
             }  
         }
-        public static void GetSheet(string getArea)
+
+
+        public static void GetSheet(string getArea, string spreadsheetid)
         {
 
             UserCredential credential;
@@ -223,7 +180,7 @@ namespace SheetsQuickstart
             });
 
             // Definerer hvad den skal kigge efter i vores sheet
-            String spreadsheetId = "1decwKsk9kd8FqJP5nAVwAcKoaUYvwe9DFAZNEE5gjPQ";
+            String spreadsheetId = spreadsheetid;
             String getRange = getArea;
             SpreadsheetsResource.ValuesResource.GetRequest request =
                     service.Spreadsheets.Values.Get(spreadsheetId, getRange);
@@ -241,6 +198,13 @@ namespace SheetsQuickstart
                 {
                     try
                     {
+                        checkedState[i] = values[i][2];
+                        processList[i] = values[i][1];
+                        gamesList[i] = values[i][0];
+                        Console.WriteLine(processList[i]);
+
+                        File.AppendAllText(programPath, values[i][0] + "," + values[i][1] + "," + values[i][2] + ";");
+
                         i++;
                     }
                     catch (Exception c)
@@ -253,6 +217,29 @@ namespace SheetsQuickstart
             else
             {
                 Console.WriteLine("No data found.");
+            }
+        }
+
+
+        private static bool IsMachineUp(string hostName)
+        {
+            Ping p = new Ping();
+            try
+            {
+                PingReply reply = p.Send(hostName, 3000);
+                if(reply.Status == IPStatus.Success)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return false;
             }
         }
     }
