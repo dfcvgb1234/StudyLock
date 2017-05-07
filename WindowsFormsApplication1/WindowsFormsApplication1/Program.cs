@@ -4,15 +4,16 @@ using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using System;
+using System.Diagnostics;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using WindowsFormsApplication1;
 using System.Windows.Forms;
 using System.Net.NetworkInformation;
-using ReadWriteCsv;
+using System.Security.Principal;
 using System.Management;
 namespace SheetsQuickstart
 {
@@ -25,9 +26,12 @@ namespace SheetsQuickstart
 
         public static int increment = 2;
 
+        public static bool isElevated;
+
         static string path = @"C:\Windows\System32\drivers\etc\hosts";
         static string programPath = @"C:\Windows\System32\drivers\etc\Programs.begeba";
 
+        static string[][] values = new string[600][];
         // Genererer en ny array, med objecter til processlisten  
         // *husk at gøre arrayen større hvis der er brug for mere plads*
         static public object[] processList = new object[5000];
@@ -40,7 +44,32 @@ namespace SheetsQuickstart
         // Main start
         static void Main(string[] args)
         {
+            if (!checkForAdmin())
+            {
+                string currentPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+                string openPath = currentPath + @"\WindowsFormsApplication1.exe";
+                //MessageBox.Show(openPath, "ADVARSEL", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                
+                const int ERROR_CANCELLED = 1223; //The operation was canceled by the user.
 
+                ProcessStartInfo info = new ProcessStartInfo(openPath);
+                info.UseShellExecute = true;
+                info.Verb = "runas";
+                again:
+                try
+                {
+                    Process.Start(info);
+                }
+                catch (Win32Exception ex)
+                {
+                    if(ex.NativeErrorCode == ERROR_CANCELLED)
+                    {
+                        goto again;
+                    }
+                }
+                Thread.Sleep(2000);
+                Environment.Exit(1);
+            }
             if (!File.Exists(path))
             {
                 File.Create(path).Close();
@@ -63,10 +92,49 @@ namespace SheetsQuickstart
             }
             else
             {
-                if(String.IsNullOrEmpty(File.ReadAllText(programPath)))
+                if (String.IsNullOrEmpty(File.ReadAllText(programPath)))
                 {
-                    MessageBox.Show("Du skal have forbindelse til nettet første gang du åber programmet","ADVARSEL!",MessageBoxButtons.OK,MessageBoxIcon.Exclamation);
+                    MessageBox.Show("Du skal have forbindelse til nettet første gang du åber programmet", "ADVARSEL!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                     Environment.Exit(1);
+                }
+                else
+                {
+                    string[] fileText = File.ReadAllText(programPath).Split(';');
+                    for (int i = 0; i < fileText.Length; i++)
+                    {
+                        values[i] = fileText[i].Split(',');
+                    }
+                    for (int i = 0; i < fileText.Length; i++)
+                    {
+                        int h = 0;
+                        foreach (string j in values[i])
+                        {
+                            if(h == 0)
+                            {
+                                if(!String.IsNullOrEmpty(values[i][h]))
+                                {
+                                    gamesList[i] = values[i][h];
+                                }
+                            }
+                            if(h == 1)
+                            {
+                                if (!String.IsNullOrEmpty(values[i][h]))
+                                {
+                                    processList[i] = values[i][h];
+                                }
+                            }
+                            if(h == 2)
+                            {
+                                if (!String.IsNullOrEmpty(values[i][h]))
+                                {
+                                    checkedState[i] = values[i][h];
+                                }
+
+                            }
+                            Console.WriteLine(i + "nr " + "string " + j);
+                            h++;
+                        }
+                    }
                 }
             }
             // subscriber startwatch til StartWatch_EventArrived metoden.
@@ -93,9 +161,7 @@ namespace SheetsQuickstart
             using (var stream =
                 new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
-                string credPath = System.Environment.GetFolderPath(
-                    System.Environment.SpecialFolder.Personal);
-                credPath = Path.Combine(credPath, ".credentials/sheets.googleapis.com-dotnet-quickstart.json");
+                string credPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
                 credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
                     GoogleClientSecrets.Load(stream).Secrets,
@@ -163,7 +229,7 @@ namespace SheetsQuickstart
             using (var stream =
             new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
-                string credPath = @"C:\Windows\System32\drivers\etc\sheets.googleapis.com-dotnet-quickstart.json";
+                string credPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); 
 
                 credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
                     GoogleClientSecrets.Load(stream).Secrets,
@@ -244,6 +310,15 @@ namespace SheetsQuickstart
                 Console.WriteLine(e.Message);
                 return false;
             }
+        }
+        static public bool checkForAdmin()
+        {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+            {
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+                isElevated = principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
+            return isElevated;
         }
     }
 }

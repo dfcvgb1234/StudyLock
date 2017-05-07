@@ -33,11 +33,12 @@
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.info = new System.Windows.Forms.Label();
             this.Values = new System.Windows.Forms.TextBox();
             this.roundButton1 = new RoundButton.RoundButton();
             this.progs = new RoundButton.RoundButton();
             this.roundButton2 = new RoundButton.RoundButton();
+            this.HostFileWatcher = new System.IO.FileSystemWatcher();
+            ((System.ComponentModel.ISupportInitialize)(this.HostFileWatcher)).BeginInit();
             this.SuspendLayout();
             // 
             // textBox1
@@ -76,15 +77,6 @@
             this.label2.Size = new System.Drawing.Size(45, 13);
             this.label2.TabIndex = 4;
             this.label2.Text = "Minutter";
-            // 
-            // info
-            // 
-            this.info.AutoSize = true;
-            this.info.Location = new System.Drawing.Point(9, 90);
-            this.info.Name = "info";
-            this.info.Size = new System.Drawing.Size(0, 13);
-            this.info.TabIndex = 5;
-            this.info.Click += new System.EventHandler(this.info_Click);
             // 
             // Values
             // 
@@ -136,13 +128,23 @@
             this.roundButton2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.roundButton2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel, ((byte)(0)));
             this.roundButton2.ForeColor = System.Drawing.Color.Black;
-            this.roundButton2.Location = new System.Drawing.Point(12, 67);
+            this.roundButton2.Location = new System.Drawing.Point(13, 65);
             this.roundButton2.Name = "roundButton2";
             this.roundButton2.Size = new System.Drawing.Size(260, 36);
             this.roundButton2.TabIndex = 13;
             this.roundButton2.Text = "Start";
             this.roundButton2.UseVisualStyleBackColor = false;
             this.roundButton2.Click += new System.EventHandler(this.roundButton2_Click);
+            // 
+            // HostFileWatcher
+            // 
+            this.HostFileWatcher.EnableRaisingEvents = true;
+            this.HostFileWatcher.Path = "C:\\Windows\\System32\\drivers\\etc";
+            this.HostFileWatcher.SynchronizingObject = this;
+            this.HostFileWatcher.Changed += new System.IO.FileSystemEventHandler(this.Host_Changed);
+            this.HostFileWatcher.Created += new System.IO.FileSystemEventHandler(this.Host_Created);
+            this.HostFileWatcher.Deleted += new System.IO.FileSystemEventHandler(this.Host_Deleted);
+            this.HostFileWatcher.Renamed += new System.IO.RenamedEventHandler(this.Host_Renamed);
             // 
             // Form1
             // 
@@ -154,7 +156,6 @@
             this.Controls.Add(this.roundButton1);
             this.Controls.Add(this.progs);
             this.Controls.Add(this.Values);
-            this.Controls.Add(this.info);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBox2);
@@ -165,6 +166,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "StudyFocus";
             this.Load += new System.EventHandler(this.Form1_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.HostFileWatcher)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -176,11 +178,11 @@
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Label info;
         private System.Windows.Forms.TextBox Values;
         private RoundButton.RoundButton progs;
         private RoundButton.RoundButton roundButton1;
         private RoundButton.RoundButton roundButton2;
+        private System.IO.FileSystemWatcher HostFileWatcher;
     }
 }
 

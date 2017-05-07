@@ -1,21 +1,12 @@
 ﻿using System;
 using System.IO;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Automation;
 using System.Diagnostics;
 using System.Windows.Forms;
 using System.Threading;
 using SheetsQuickstart;
-using System.Management;
-using System.Web;
-using System.Text.RegularExpressions;
-using NDde.Client;
+using IWshRuntimeLibrary;
 namespace WindowsFormsApplication1
 {
     public partial class Form1 : Form
@@ -28,6 +19,12 @@ namespace WindowsFormsApplication1
         string hour;
         int minutes;
         int hours;
+        int tmpmin;
+        int tmphour;
+
+        bool onceBut = false;
+
+        public bool isElevated;
 
         static object[] checkedPrograms = new object[Program.processList.Length];
         int range = 0;
@@ -46,13 +43,7 @@ namespace WindowsFormsApplication1
         {
             // definerer og starter threadsne
             InitializeComponent();
-            Thread rP1 = new Thread(ReadProcesses1);
-            Thread rP2 = new Thread(ReadProcesses2);
-            Thread rp3 = new Thread(ReadProcesses3);     
-            rP1.Start();
-            rP2.Start();
-            rp3.Start();
-            FormClosed += Form1_FormClosed;  
+            FormClosed += Form1_FormClosed;
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
@@ -65,7 +56,7 @@ namespace WindowsFormsApplication1
                 }
                 else
                 {
-                    
+
                 }
             }
 
@@ -84,64 +75,17 @@ namespace WindowsFormsApplication1
            .ToArray();
             for (int i = 0; i < check.Length; i++)
             {
-                if(check[i] == "TRUE")
+                if (check[i] == "TRUE")
                 {
                     checkedPrograms[i] = programArray[i];
                 }
             }
         }
 
-
-        // ReadProcesses metoden, kører samtidig med hindanen med defineret antal threads
-        static void ReadProcesses1()
-        {
-            Console.WriteLine("Thread 'rP1' has been run");
-            while (true)
-            {
-                if (butPressed == true)
-                {
-                    break;
-                }
-            }
-            int stop = Process.GetProcesses().Length / threads;
-            StopProcesses(checkedPrograms, threads, 0, stop);
-            
-        }
-        static void ReadProcesses2()
-        {
-            Console.WriteLine("Thread 'rP2' has been run");
-            while (true)
-            {
-                if (butPressed == true)
-                {
-                    break;
-                }
-            }
-            int stop = Process.GetProcesses().Length / threads;
-            stop = stop * 2;
-            StopProcesses(checkedPrograms, threads, 1, stop);
-        }
-        static void ReadProcesses3()
-        {
-            Console.WriteLine("Thread 'rP3' has been run");
-            while (true)
-            {
-                if (butPressed == true)
-                {
-                    break;
-                }
-            }
-            int stop = Process.GetProcesses().Length / threads;
-            stop = stop * 3;
-            StopProcesses(checkedPrograms, threads, 2, stop);
-        }
-
-        
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             hour = textBox1.Text;
             // opdatere info label, med den antal tid der er
-            info.Text = textBox1.Text + " Timer, " + textBox2.Text + " Minutter";
             try
             {
                 // prøver at parse den string der er i teksboksen til en int
@@ -155,7 +99,7 @@ namespace WindowsFormsApplication1
                 // i tilfælde af at man prøver at skrive tal.
                 if (string.IsNullOrWhiteSpace(textBox1.Text) == false)
                 {
-                    MessageBox.Show(this,"Du kan kun indsætte tal her","ADVARSEL",MessageBoxButtons.OK);
+                    MessageBox.Show(this, "Du kan kun indsætte tal her", "ADVARSEL", MessageBoxButtons.OK,MessageBoxIcon.Stop);
                 }
             }
         }
@@ -164,7 +108,6 @@ namespace WindowsFormsApplication1
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
             min = textBox2.Text;
-            info.Text = textBox1.Text + " Timer, " + textBox2.Text + " Minutter";
             try
             {
                 minutes = Int32.Parse(textBox2.Text);
@@ -174,7 +117,7 @@ namespace WindowsFormsApplication1
                 Console.WriteLine(c.Message);
                 if (string.IsNullOrWhiteSpace(textBox2.Text) == false)
                 {
-                    MessageBox.Show(this, "Du kan kun indsætte tal her", "ADVARSEL", MessageBoxButtons.OK);
+                    MessageBox.Show(this, "Du kan kun indsætte tal her", "ADVARSEL", MessageBoxButtons.OK,MessageBoxIcon.Stop);
                 }
             }
             // Sørger for at hvis minutter er over 60 så så trækker den 60 fra minutter og lægger 1 til time
@@ -194,42 +137,6 @@ namespace WindowsFormsApplication1
 
         }
 
-        // Starter timer og Process check
-        public void button1_Click(object sender, EventArgs e)
-        {
-            // checker om der er nogen kasser der tomme.
-            if(string.IsNullOrWhiteSpace(textBox1.Text) || string.IsNullOrWhiteSpace(textBox2.Text))
-            {
-                // åbner en messagebox for at lade burgeren vide han har lavet en fejl
-                MessageBox.Show(this,"Du skal skrive noget før du kan starte!","ADVARSEL", MessageBoxButtons.OK);
-            }
-            else
-            {   
-                // skjuler alt bortset fra timeren.
-                textBox1.Visible = false;
-                textBox2.Visible = false;
-                label1.Visible = false;
-                label2.Visible = false;
-                info.Visible = false;
-
-                // minder brugeren om at han skal huske at gemme alt inden han starter
-                MessageBox.Show(this, "Husk at gemme alt hvad du har åbent", "ADVARSEL", MessageBoxButtons.OK);
-                butPressed = true;
-
-                // starter check af processer
-                StopProcesses(checkedPrograms, threads, 3, Process.GetProcesses().Length);
-
-                // definerer en ny timer og starter den.
-                timer1 = new System.Windows.Forms.Timer();
-                timer1.Tick += new EventHandler(timer1_Tick);
-                timer1.Interval = 1000; // 1 second
-                timer1.Start();
-
-                // skriver det til value label
-                Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
-            }
-        }
-
         // indeholder koden til timeren
         private void timer1_Tick(object sender, EventArgs e)
         {
@@ -239,6 +146,8 @@ namespace WindowsFormsApplication1
             // skriver det til value label
             Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
 
+            System.IO.File.WriteAllText(@"C:\Windows\System32\drivers\etc\Info.begeba", hours + ";" + minutes);
+
             // checker om minutter er 0 og trækker 1 fra timer.
             if (minutes <= 0 && hours != 0)
             {
@@ -246,12 +155,18 @@ namespace WindowsFormsApplication1
                 minutes = 60;
             }
 
+            if (tmphour == tmphour - 2)
+            {
+                tmphour = tmphour - 2;
+                roundButton1.PerformClick();
+            }
             // stopper timeren
             if (minutes <= 0 && hours == 0)
             {
                 timer1.Stop();
                 Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
-                File.Delete(@"C:\Windows\System32\drivers\etc\hosts");
+                System.IO.File.Delete(@"C:\Windows\System32\drivers\etc\hosts");
+                System.IO.File.Delete(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup),"StudyLock.lnk"));
                 Environment.Exit(1);
             }
         }
@@ -259,40 +174,29 @@ namespace WindowsFormsApplication1
         // metoden der sørger for at processerne bliver checket og lukket hvis de skal lukkes
         public static void StopProcesses(object[] Processes, int increment, int startValue, int endValue)
         {
-            // definerer en ny process array som der indsamler alle åbne processer
-            Process[] process = Process.GetProcesses();
-
             // omdanner den liste som vi fik fra google sheets til en string array
             string[] proc = Processes.Where(x => x != null)
                        .Select(x => x.ToString())
                        .ToArray();
-
-            // for loop der gennemgår alle åbne processer
-            for (int j = startValue; j < endValue; j = j + increment)
-            {   
-                // progress variabel som bruges senere
-                //progress++;
-
-                // gennemgår hele vores liste og sammen ligner den med den nuværende process der bliver checket
-                for (int i = 0; i < proc.Length; i++)
+            foreach (string n in proc)
+            {
+                Process[] hej = Process.GetProcessesByName(n.ToLower());
+                foreach (Process j in hej)
                 {
-                    // prøver at lukke programmet hvis det skal lukkes
                     try
                     {
-                        if(process[j].ProcessName.ToLower() == proc[i].ToLower())
-                        {
-                            process[j].Kill();
-                        }
+                        j.Kill();
                     }
-
-                    // skriver til console hvis der opstår en fejl
                     catch (Exception c)
                     {
                         Console.WriteLine(c.Message);
                     }
                 }
             }
-            Console.WriteLine("Finished");
+        }
+        private void Values_TextChanged(object sender, EventArgs e)
+        {
+
         }
 
         // overload metode til process metoden
@@ -302,7 +206,6 @@ namespace WindowsFormsApplication1
             bool found = false;
 
             // får igen alle processer
-            Process[] process = Process.GetProcesses();
 
             // omdanner igen vores liste til en string array
             string[] proc = Processes.Where(x => x != null)
@@ -310,50 +213,56 @@ namespace WindowsFormsApplication1
                        .ToArray();
             if (Proces.ToLower() == "taskmgr")
             {
-                for (int j = 0; j < process.Length; j++)
+                Process[] hej = Process.GetProcessesByName("taskmgr");
+                foreach (Process j in hej)
                 {
-                    if (Proces.ToLower() == process[j].ProcessName.ToLower())
+                    try
                     {
-                        process[j].Kill();
+                        j.Kill();
+                    }
+                    catch(Exception e)
+                    {
+                        Console.WriteLine(e.Message);
                     }
                 }
             }
             else
             {
                 // checker hele vores list of sammenligner med den den angivne process
-                for (int i = 0; i < proc.Length; i++)
+                foreach (string j in proc)
                 {
-                    if (Proces.ToLower() == proc[i].ToLower())
+                    if (j.ToLower() == Proces.ToLower())
                     {
                         found = true;
                     }
-
-                    // lukker programmet hvis det findes i åbne processer
-                    if (found == true)
+                    else
                     {
-                        for (int j = 0; j < process.Length; j++)
-                        {
-                            if (Proces.ToLower() == process[j].ProcessName.ToLower())
-                            {
-                                // prøver at lukke programmet og giver en fejl hvis det ikke kunne lade sig gøre
-                                try
-                                {
-                                    Thread.Sleep(1000);
-                                    process[j].Kill();
-                                }
+                        found = false;
+                    }
+                }
 
-                                // skriver til console hvis der opstår en fejl
-                                catch (Exception c)
-                                {
-                                    Console.WriteLine(c.Message);
-                                }
-                            }
+                if(found == true)
+                {
+                    Process[] hej = Process.GetProcessesByName(Proces.ToLower());
+                    foreach(Process j in hej)
+                    {
+                        try
+                        {
+                            j.Kill();
+                        }
+                        catch(Exception e)
+                        {
+                            Console.WriteLine(e.Message);
                         }
                     }
                 }
-                Console.WriteLine("Closed");
+
+
             }
+            Console.WriteLine("Closed");
         }
+    
+
 
         // metode som vi kan bruge fra andre scripts, som fortæller om programmet er blevet lukket.
         public bool killProg()
@@ -371,6 +280,21 @@ namespace WindowsFormsApplication1
         // ikke brugt men nødvændig metode
         private void Form1_Load(object sender, EventArgs e)
         {
+            
+            if (System.IO.File.Exists(@"C:\Windows\System32\drivers\etc\Info.begeba"))
+            {
+                if (!String.IsNullOrWhiteSpace(System.IO.File.ReadAllText(@"C:\Windows\System32\drivers\etc\Info.begeba")))
+                {
+                    string[] splitText = System.IO.File.ReadAllText(@"C:\Windows\System32\drivers\etc\Info.begeba").Split(';');
+                    if (splitText[1] != "0" && splitText[0] != "0")
+                    {
+                        textBox1.Text = splitText[0];
+                        textBox2.Text = splitText[1];
+                        Thread.Sleep(10000);
+                        roundButton2.PerformClick();
+                    }
+                }
+            }
             CreateProgramArray(Program.checkedState, Program.processList);
             string[] check = checkedPrograms.Where(x => x != null)
                        .Select(x => x.ToString())
@@ -380,32 +304,10 @@ namespace WindowsFormsApplication1
             {
                 Console.WriteLine(check[i]);
             }
-            if (!File.Exists(@"C:\Windows\System32\drivers\etc\host.begeba"))
+            if (!System.IO.File.Exists(@"C:\Windows\System32\drivers\etc\host.begeba"))
             {
-                File.Create(@"C:\Windows\System32\drivers\etc\host.begeba").Close();
+                System.IO.File.Create(@"C:\Windows\System32\drivers\etc\host.begeba").Close();
             }
-        }
-
-        // ikke brugt men nødvændig metode
-        private void Values_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        // ikke brugt men nødvændig metode
-        private void progressBar1_Click(object sender, EventArgs e)
-        {
-            
-        }
-
-        private void checkedListBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void button2_Click_1(object sender, EventArgs e)
-        {
-
         }
 
         private void label1_Click(object sender, EventArgs e)
@@ -416,7 +318,7 @@ namespace WindowsFormsApplication1
         public static void UpdateHostFile(string updateText)
         {
             string path = @"C:\Windows\System32\drivers\etc\hosts";
-            using (StreamWriter w = File.AppendText(path))
+            using (StreamWriter w = System.IO.File.AppendText(path))
             {
                 if(!updateText.Contains("www."))
                 {
@@ -429,11 +331,6 @@ namespace WindowsFormsApplication1
             }
         }
 
-        private void button3_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private void progs_Click(object sender, EventArgs e)
         {
             var list_form = new ListOfProcesses();
@@ -444,22 +341,30 @@ namespace WindowsFormsApplication1
         {
             var list_web = new ListOfWebsites();
             list_web.Show();
-            Console.WriteLine(File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba"));
-            string fileText = File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba");
+            Console.WriteLine(System.IO.File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba"));
+            string fileText = System.IO.File.ReadAllText(@"C:\Windows\System32\drivers\etc\host.begeba");
             websites = fileText.Split(',');
             Console.WriteLine(websites.Length);
         }
 
         private void roundButton2_Click(object sender, EventArgs e)
         {
+            //rP1.Start();
+            //rP2.Start();
+            //rp3.Start();
+            string runningFilePath = @"C:\Windows\System32\drivers\etc\Info.begeba";
             string hostPath = @"C:\Windows\System32\drivers\etc\host.begeba";
-            string filetext = File.ReadAllText(hostPath);
+            string filetext = System.IO.File.ReadAllText(hostPath);
             string[] websites = filetext.Split(';');
+            if (onceBut == false)
+            {
+                System.IO.File.Create(runningFilePath).Close();
+            }
             // checker om der er nogen kasser der tomme.
             if (string.IsNullOrWhiteSpace(textBox1.Text) || string.IsNullOrWhiteSpace(textBox2.Text))
             {
                 // åbner en messagebox for at lade burgeren vide han har lavet en fejl
-                MessageBox.Show(this, "Du skal skrive noget før du kan starte!", "ADVARSEL", MessageBoxButtons.OK);
+                MessageBox.Show(this, "Du skal skrive noget før du kan starte!", "ADVARSEL", MessageBoxButtons.OK,MessageBoxIcon.Stop);
             }
             else
             {
@@ -468,25 +373,35 @@ namespace WindowsFormsApplication1
                 textBox2.Visible = false;
                 label1.Visible = false;
                 label2.Visible = false;
-                info.Visible = false;
+                roundButton1.Visible = false;
+                roundButton2.Visible = false;
+                progs.Visible = false;
 
-                // minder brugeren om at han skal huske at gemme alt inden han starter
-                MessageBox.Show(this, "Husk at gemme alt hvad du har åbent", "ADVARSEL", MessageBoxButtons.OK);
+                if (onceBut == false)
+                {
+                    // minder brugeren om at han skal huske at gemme alt inden han starter
+                    MessageBox.Show(this, "Husk at gemme alt hvad du har åbent", "ADVARSEL", MessageBoxButtons.OK,MessageBoxIcon.Warning);
+                    CreateShortcut("StudyLock",Environment.GetFolderPath(Environment.SpecialFolder.Startup),Environment.CurrentDirectory + @"\WindowsFormsApplication1.exe",Environment.CurrentDirectory);
+                }
                 butPressed = true;
 
                 // starter check af processer
                 StopProcesses(checkedPrograms, threads, 3, Process.GetProcesses().Length);
 
-                // definerer en ny timer og starter den.
-                timer1 = new System.Windows.Forms.Timer();
-                timer1.Tick += new EventHandler(timer1_Tick);
-                timer1.Interval = 1000; // 1 second
-                timer1.Start();
-                if(File.Exists(@"C:\Windows\System32\drivers\etc\hosts"))
+                if (onceBut == false)
                 {
-                    File.Delete(@"C:\Windows\System32\drivers\etc\hosts");
+                    // definerer en ny timer og starter den.
+                    timer1 = new System.Windows.Forms.Timer();
+                    timer1.Tick += new EventHandler(timer1_Tick);
+                    timer1.Interval = 1000; // 1 second
+                    timer1.Start();
                 }
-                File.Create(@"C:\Windows\System32\drivers\etc\hosts").Close();
+                
+                if(System.IO.File.Exists(@"C:\Windows\System32\drivers\etc\hosts"))
+                {
+                    System.IO.File.Delete(@"C:\Windows\System32\drivers\etc\hosts");
+                }
+                System.IO.File.Create(@"C:\Windows\System32\drivers\etc\hosts").Close();
                 foreach (string s in websites)
                 {
                     if (!String.IsNullOrWhiteSpace(s))
@@ -494,11 +409,62 @@ namespace WindowsFormsApplication1
                         UpdateHostFile(s);
                     }
                 }
-                
 
+                //rP1.Abort();
+                //rP2.Abort();
+                //rp3.Abort();
+                onceBut = true;
                 // skriver det til value label
                 Values.Text = hours.ToString() + " Hours, " + minutes + " minutes";
             }
+
+        }
+        public static void CreateShortcut(string shortcutName, string shortcutPath, string targetFileLocation, string filefolder)
+        {
+            string shortcutLocation = System.IO.Path.Combine(shortcutPath, shortcutName + ".lnk");
+            WshShell shell = new WshShell();
+            IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(shortcutLocation);
+
+            shortcut.Description = "My shortcut description";   // The description of the shortcut
+            shortcut.TargetPath = targetFileLocation;           // The path of the file that will launch when the shortcut is run
+            shortcut.WorkingDirectory = filefolder;
+            shortcut.Save();                                    // Save the shortcut
+        }
+
+        private void Host_Renamed(object sender, RenamedEventArgs e)
+        {
+            Console.WriteLine(string.Format("Renamed: {0} {1}", e.OldName, e.ChangeType));
+            if(e.OldName == "host.begeba")
+            {
+                System.IO.File.Move(e.FullPath, e.OldFullPath);
+            }
+            if (e.OldName == "hosts")
+            {
+                System.IO.File.Move(e.FullPath, e.OldFullPath);
+            }
+            if (e.OldName == "Info.begeba")
+            {
+                System.IO.File.Move(e.FullPath, e.OldFullPath);
+            }
+            if (e.OldName == "Programs.begeba")
+            {
+                System.IO.File.Move(e.FullPath, e.OldFullPath);
+            }
+        }
+
+        private void Host_Deleted(object sender, FileSystemEventArgs e)
+        {
+            Console.WriteLine(string.Format("Deleted: {0} {1}", e.Name, e.ChangeType));
+        }
+
+        private void Host_Changed(object sender, FileSystemEventArgs e)
+        {
+            Console.WriteLine(string.Format("Changed: {0} {1}", e.Name, e.ChangeType));
+        }
+
+        private void Host_Created(object sender, FileSystemEventArgs e)
+        {
+            Console.WriteLine(string.Format("Created: {0} {1}", e.Name, e.ChangeType));
         }
     }
 }
